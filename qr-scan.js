@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         网页二维码识别器 (QR Code Scanner)
-// @namespace    https://github.com/shiyi
+// @namespace    https://github.com/ShiYIoo
 // @version      1.0.0
 // @description  自动识别网页上的二维码，支持图片右键扫描和手动框选扫描
 // @author       ShiYi
