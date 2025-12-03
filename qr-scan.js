@@ -685,13 +685,201 @@
                     <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v3h-3v-3zm0 5h3v3h-3v-3z"/>
                 </svg>
             `;
-            button.title = '点击开始截图扫描二维码';
-
-            button.addEventListener('click', () => {
-                this.startScreenshotMode();
-            });
+            button.title = '点击开始截图扫描二维码\n长按可拖动位置';
 
             document.body.appendChild(button);
+
+            // 拖动相关变量
+            let isDragging = false;
+            let dragStarted = false;
+            let hasMoved = false;
+            let startX = 0;
+            let startY = 0;
+            let currentX = 0;
+            let currentY = 0;
+            let longPressTimer = null;
+
+            // 初始化位置（从当前的right/bottom计算出left/top）
+            const initPosition = () => {
+                const rect = button.getBoundingClientRect();
+                currentX = rect.left;
+                currentY = rect.top;
+            };
+
+            // 在DOM插入后初始化位置
+            setTimeout(initPosition, 0);
+
+            // 鼠标按下
+            const handleMouseDown = (e) => {
+                if (e.button !== 0) return; // 只响应左键
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                hasMoved = false;
+                dragStarted = false;
+
+                // 更新当前位置
+                const rect = button.getBoundingClientRect();
+                currentX = rect.left;
+                currentY = rect.top;
+
+                startX = e.clientX - currentX;
+                startY = e.clientY - currentY;
+
+                // 长按检测（200ms）
+                longPressTimer = setTimeout(() => {
+                    isDragging = true;
+                    button.style.cursor = 'grabbing';
+                    button.style.transition = 'none';
+                }, 200);
+
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+            };
+
+            // 鼠标移动
+            const handleMouseMove = (e) => {
+                if (!isDragging) {
+                    // 检测是否移动了足够距离，如果是则取消长按计时器
+                    const moveDistance = Math.abs(e.clientX - (startX + currentX)) + Math.abs(e.clientY - (startY + currentY));
+                    if (moveDistance > 5) {
+                        clearTimeout(longPressTimer);
+                    }
+                    return;
+                }
+
+                hasMoved = true;
+                dragStarted = true;
+                e.preventDefault();
+                e.stopPropagation();
+
+                currentX = e.clientX - startX;
+                currentY = e.clientY - startY;
+
+                // 限制在视窗范围内
+                const maxX = window.innerWidth - button.offsetWidth;
+                const maxY = window.innerHeight - button.offsetHeight;
+
+                currentX = Math.max(0, Math.min(currentX, maxX));
+                currentY = Math.max(0, Math.min(currentY, maxY));
+
+                button.style.right = 'auto';
+                button.style.bottom = 'auto';
+                button.style.left = `${currentX}px`;
+                button.style.top = `${currentY}px`;
+            };
+
+            // 鼠标松开
+            const handleMouseUp = (e) => {
+                clearTimeout(longPressTimer);
+
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+
+                if (hasMoved || dragStarted) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                isDragging = false;
+                button.style.cursor = 'pointer';
+                button.style.transition = 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+
+                // 延迟重置标志，确保点击事件能正确判断
+                setTimeout(() => {
+                    dragStarted = false;
+                    hasMoved = false;
+                }, 50);
+            };
+
+            // 点击事件（仅在非拖动时触发）
+            const handleClick = (e) => {
+                if (dragStarted || hasMoved) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+                this.startScreenshotMode();
+            };
+
+            // 触摸事件支持
+            const handleTouchStart = (e) => {
+                e.stopPropagation();
+
+                hasMoved = false;
+                dragStarted = false;
+
+                const rect = button.getBoundingClientRect();
+                currentX = rect.left;
+                currentY = rect.top;
+
+                const touch = e.touches[0];
+                startX = touch.clientX - currentX;
+                startY = touch.clientY - currentY;
+
+                longPressTimer = setTimeout(() => {
+                    isDragging = true;
+                    button.style.cursor = 'grabbing';
+                    button.style.transition = 'none';
+                }, 200);
+            };
+
+            const handleTouchMove = (e) => {
+                if (!isDragging) {
+                    const touch = e.touches[0];
+                    const moveDistance = Math.abs(touch.clientX - (startX + currentX)) + Math.abs(touch.clientY - (startY + currentY));
+                    if (moveDistance > 5) {
+                        clearTimeout(longPressTimer);
+                    }
+                    return;
+                }
+
+                hasMoved = true;
+                dragStarted = true;
+                e.preventDefault();
+                e.stopPropagation();
+
+                const touch = e.touches[0];
+                currentX = touch.clientX - startX;
+                currentY = touch.clientY - startY;
+
+                const maxX = window.innerWidth - button.offsetWidth;
+                const maxY = window.innerHeight - button.offsetHeight;
+
+                currentX = Math.max(0, Math.min(currentX, maxX));
+                currentY = Math.max(0, Math.min(currentY, maxY));
+
+                button.style.right = 'auto';
+                button.style.bottom = 'auto';
+                button.style.left = `${currentX}px`;
+                button.style.top = `${currentY}px`;
+            };
+
+            const handleTouchEnd = (e) => {
+                clearTimeout(longPressTimer);
+
+                if (hasMoved || dragStarted) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                isDragging = false;
+                button.style.cursor = 'pointer';
+                button.style.transition = 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+
+                setTimeout(() => {
+                    dragStarted = false;
+                    hasMoved = false;
+                }, 50);
+            };
+
+            // 绑定事件
+            button.addEventListener('mousedown', handleMouseDown);
+            button.addEventListener('click', handleClick);
+            button.addEventListener('touchstart', handleTouchStart, { passive: false });
+            button.addEventListener('touchmove', handleTouchMove, { passive: false });
+            button.addEventListener('touchend', handleTouchEnd);
         }
 
         /**
