@@ -16,6 +16,12 @@
 (function() {
     'use strict';
 
+    // 只在顶层窗口运行，不在iframe中运行
+    if (window.self !== window.top) {
+        console.log('🔍 QR扫描器: 跳过iframe页面');
+        return;
+    }
+
     // 配置项
     const CONFIG = {
         autoScan: false,             // 是否自动扫描页面图片
@@ -670,7 +676,6 @@
     // UI管理器
     class UIManager {
         constructor() {
-            this.currentMenu = null;
             this.currentModal = null;
         }
 
